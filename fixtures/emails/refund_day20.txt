@@ -1,0 +1,2 @@
+[e-001] Hello, I purchased a desk lamp on this account twenty days ago (order ORD-1001).
+[e-002] It works, but I want to return it. Am I still inside the refund window?

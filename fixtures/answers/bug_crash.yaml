@@ -1,0 +1,13 @@
+ticket_id: bug_crash
+path: bug
+extract_questions:
+  - id: version
+    question: What app version crashed?
+    acceptable_span_ids: ["e-001"]
+    required_substrings: ["3.4.1"]
+rules:
+  - id: crash_fields
+    question: Did the report include version and time?
+    expected: pass
+    canonical_span_ids: ["e-001"]
+    required_substrings: ["3.4.1"]

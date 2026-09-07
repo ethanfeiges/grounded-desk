@@ -1,0 +1,30 @@
+[project]
+name = "grounded-desk"
+version = "0.1.0"
+description = "Support replies grounded in a published policy store"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+live = ["langchain-openai>=0.2.0"]
+
+[project.scripts]
+grounded-desk = "grounded_desk.run:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["grounded_desk*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

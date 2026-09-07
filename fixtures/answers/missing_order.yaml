@@ -1,0 +1,18 @@
+ticket_id: missing_order
+path: refund
+extract_questions:
+  - id: order_id
+    question: What order ID did the customer give?
+    acceptable_span_ids: ["e-001"]
+    required_substrings: ["ORD-9999"]
+rules:
+  - id: refund_window_30
+    question: Is the purchase still inside the 30-day refund window?
+    expected: pass
+    canonical_span_ids: ["p-001"]
+    required_substrings: ["thirty (30) days"]
+  - id: order_id_present
+    question: Did the customer include an order ID?
+    expected: pass
+    canonical_span_ids: ["e-001"]
+    required_substrings: ["ORD-9999"]

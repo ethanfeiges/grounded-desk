@@ -1,0 +1,6 @@
+[p-001] Customers may request a refund within fourteen (14) days of the purchase date.
+[p-002] Refund requests must include a valid order ID.
+[p-003] Digital gift cards are not eligible for refunds.
+[p-004] Password resets are available under Account, then Security, then Reset password.
+[p-005] Crash reports should include the app version and the time of the failure.
+[p-006] Approved refunds are issued to the original payment method within five business days.
