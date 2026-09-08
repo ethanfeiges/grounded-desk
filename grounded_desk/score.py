@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from grounded_desk.models import Claim, ExtractQuestion, PlaybookRule, TicketAnswers, VerifiedClaim
+from grounded_desk.models import ExtractQuestion, PlaybookRule, TicketAnswers, VerifiedClaim
 
 
 def _norm(text: str) -> str:
@@ -56,10 +56,3 @@ def task_scores(
             score_extract(v, question) for v in pool
         )
     return scores
-
-
-def parse_claims(raw: str) -> list[Claim]:
-    import json
-
-    data = json.loads(raw)
-    return [Claim.model_validate(item) for item in data["claims"]]

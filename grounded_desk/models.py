@@ -48,3 +48,12 @@ class TicketAnswers(BaseModel):
     path: PathName
     rules: list[PlaybookRule] = Field(default_factory=list)
     extract_questions: list[ExtractQuestion] = Field(default_factory=list)
+
+
+class ClaimBatch(BaseModel):
+    claims: list[Claim]
+
+
+class PublicItem(BaseModel):
+    id: str
+    question: str

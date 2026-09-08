@@ -17,3 +17,4 @@ class DeskState(TypedDict, total=False):
     order_id: str | None
     order_record: dict[str, Any] | None
     lookup_ran: bool
+    approved: bool | None

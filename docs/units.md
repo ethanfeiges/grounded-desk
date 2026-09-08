@@ -13,10 +13,10 @@ This is a control-plane step, not a support answer. Do not put refund verdicts h
 
 ## extract
 
-- **Input:** ticket id (the worker looks up the scripted or live prompt from there).
+- **Input:** ticket email, published policy block, and public questions (id + question only).
 - **Output:** `Claim[]` with `question_id`, `span_id`, `quote`.
 - **Postcondition:** quote exists on that span in the email or canonical policy store.
-- **Resource:** worker. Must not see `fixtures/answers/` and must not call `invoke` with a new thread.
+- **Resource:** live `LangChainWorker`. The plane passes `public_items`. Must not call `invoke` with a new thread.
 
 Several questions in one call are still one unit. The questions are cases inside the work item.
 
@@ -39,8 +39,15 @@ Several questions in one call are still one unit. The questions are cases inside
 - **Output:** `VerifiedClaim[]` and task scores.
 - **Postcondition:** implemented in `verify.py`. No model.
 
+## approve
+
+- **Input:** `path`, scores, ticket id.
+- **Output:** `approved` true/false.
+- **Postcondition:** refunds pause at `interrupt()` until the CLI resumes the same `thread_id`. Other paths set `approved=True` and continue.
+- **Resource:** control plane. Not a worker.
+
 ## draft
 
-- **Input:** verified claims, optional `order_record`.
+- **Input:** verified claims, optional `order_record`, `approved`.
 - **Output:** reply text.
-- **Postcondition:** every bullet is a grounded statement or the explicit “cannot confirm” fallback.
+- **Postcondition:** every bullet is a grounded statement, the “cannot confirm” fallback, or “Refund was not approved” when `approved` is false.

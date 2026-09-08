@@ -1,44 +1,57 @@
 """Compiled desk graph.
 
 Control plane is this file: edges, the keyword router, and the gather
-conditional. extract and playbook are workers. verify is a code unit.
+conditional. extract and playbook are live LangChain workers. verify is a
+code unit.
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
-from langgraph.types import Send
+from langgraph.types import Command, Send, interrupt
 
-from grounded_desk.answers import load_answers
-from grounded_desk.mock_worker import MockWorker
+from grounded_desk.answers import load_answers, public_items
+from grounded_desk.checkpointing import sqlite_saver, thread_config
+from grounded_desk.models import Claim
 from grounded_desk.router import classify
-from grounded_desk.score import parse_claims, task_scores
+from grounded_desk.score import task_scores
 from grounded_desk.state import DeskState
 from grounded_desk.tickets import find_order_id, load_bundle, order_on_disk
 from grounded_desk.verify import verify_claims
+from grounded_desk.workers import LangChainWorker, live_worker
+
+
+def _run_worker(worker: LangChainWorker, task: str, state: DeskState) -> list[Claim]:
+    return worker.complete(
+        task,
+        state["ticket_id"],
+        email_block=state["email_text"],
+        policy_block=state.get("policy_prompt") or "",
+        path=state.get("path") or "",
+        items=public_items(state["ticket_id"], task),
+    )
 
 
 def build_graph(
-    worker: MockWorker | None = None,
+    worker: LangChainWorker | None = None,
     *,
     checkpointer: Any | None = None,
+    interrupt_refunds: bool = True,
 ) -> Any:
-    worker = worker or MockWorker("canonical")
+    worker = worker or live_worker()
 
     def route(state: DeskState) -> dict[str, str]:
         return {"path": classify(state["email_text"])}
 
     def extract(state: DeskState) -> dict[str, Any]:
-        raw = worker.complete("extract", state["ticket_id"])
-        claims = [c.model_dump() for c in parse_claims(raw)]
+        claims = [c.model_dump() for c in _run_worker(worker, "extract", state)]
         return {"claims": claims}
 
     def playbook(state: DeskState) -> dict[str, Any]:
-        raw = worker.complete("playbook", state["ticket_id"])
-        claims = [c.model_dump() for c in parse_claims(raw)]
+        claims = [c.model_dump() for c in _run_worker(worker, "playbook", state)]
         return {"claims": claims}
 
     def gather(state: DeskState) -> dict[str, Any]:
@@ -75,8 +88,6 @@ def build_graph(
 
     def verify(state: DeskState) -> dict[str, Any]:
         bundle = load_bundle(state["ticket_id"])
-        from grounded_desk.models import Claim
-
         claims = [Claim.model_validate(row) for row in (state.get("claims") or [])]
         verified = verify_claims(
             claims,
@@ -90,7 +101,21 @@ def build_graph(
             "scores": task_scores(verified, answers),
         }
 
+    def approve(state: DeskState) -> dict[str, Any]:
+        if not interrupt_refunds or state.get("path") != "refund":
+            return {"approved": True}
+        decision = interrupt(
+            {
+                "awaiting": "refund_approval",
+                "ticket_id": state.get("ticket_id"),
+                "scores": state.get("scores") or {},
+            }
+        )
+        return {"approved": decision in (True, "approve", "yes")}
+
     def draft(state: DeskState) -> dict[str, str]:
+        if state.get("path") == "refund" and state.get("approved") is False:
+            return {"draft": "Refund was not approved. No reply sent."}
         grounded = [
             row
             for row in (state.get("verified") or [])
@@ -122,6 +147,7 @@ def build_graph(
     builder.add_node("gather", gather)
     builder.add_node("lookup_order", lookup_order)
     builder.add_node("verify", verify)
+    builder.add_node("approve", approve)
     builder.add_node("draft", draft)
 
     builder.add_edge(START, "route")
@@ -133,15 +159,35 @@ def build_graph(
         "gather", after_gather, ["lookup_order", "verify"]
     )
     builder.add_edge("lookup_order", "verify")
-    builder.add_edge("verify", "draft")
+    builder.add_edge("verify", "approve")
+    builder.add_edge("approve", "draft")
     builder.add_edge("draft", END)
 
     return builder.compile(checkpointer=checkpointer)
 
 
-def new_thread_graph(worker: MockWorker | None = None) -> tuple[Any, InMemorySaver]:
-    saver = InMemorySaver()
-    return build_graph(worker, checkpointer=saver), saver
+_graph: Any | None = None
+_key: tuple[str, str, bool] | None = None
+
+
+def get_app_graph(
+    worker: LangChainWorker | None = None,
+    *,
+    db_path: Path | None = None,
+    interrupt_refunds: bool = True,
+) -> Any:
+    """Process-wide graph bound to sqlite so --thread-id survives a restart."""
+    global _graph, _key
+    worker = worker or live_worker()
+    path = str(db_path) if db_path is not None else "default"
+    key = (worker.model_name, path, interrupt_refunds)
+    if _graph is None or _key != key:
+        saver = sqlite_saver(db_path)
+        _graph = build_graph(
+            worker, checkpointer=saver, interrupt_refunds=interrupt_refunds
+        )
+        _key = key
+    return _graph
 
 
 def ticket_input(ticket_id: str, *, condition: str = "clean") -> dict[str, Any]:
@@ -163,24 +209,27 @@ def invoke_ticket(
     ticket_id: str,
     *,
     condition: str = "clean",
-    worker: MockWorker | None = None,
+    worker: LangChainWorker | None = None,
     thread_id: str | None = None,
     graph: Any | None = None,
+    interrupt_refunds: bool = True,
 ) -> dict[str, Any]:
     """Application entry. Only this function sets thread_id."""
     if graph is None:
-        graph, _ = new_thread_graph(worker)
+        graph = get_app_graph(worker, interrupt_refunds=interrupt_refunds)
     tid = thread_id or ticket_id
     return graph.invoke(
         ticket_input(ticket_id, condition=condition),
-        {"configurable": {"thread_id": tid}},
+        thread_config(tid),
     )
 
 
-def worker_source() -> str:
-    """Used by tests to assert workers do not mint threads."""
-    import inspect
-
-    from grounded_desk import graph as module
-
-    return inspect.getsource(module)
+def resume_ticket(
+    graph: Any,
+    thread_id: str,
+    *,
+    approved: bool = True,
+) -> dict[str, Any]:
+    """Continue a paused refund on the same thread. Plane-only."""
+    value = "approve" if approved else "reject"
+    return graph.invoke(Command(resume=value), thread_config(thread_id))
