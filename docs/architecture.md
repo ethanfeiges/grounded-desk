@@ -17,7 +17,7 @@ Parallel writes without a reducer overwrite. That is why the reducer is on `clai
 
 ## Isolation
 
-Workers (`extract`, `playbook`) return claims from a live LangChain chat model. They do not receive the answer YAML. They do not set `configurable.thread_id`.
+Workers (`extract`, `playbook`) return claims from a live model (OpenAI or Cursor). They do not receive the answer YAML. They do not set `configurable.thread_id`.
 
 Truth is `SpanStore` loaded from `fixtures/policies/canonical.txt` and the ticket email. The decoy file is passed into verify only so a bad quote can be labeled `draft_policy`. It is never accepted as grounded.
 
@@ -30,7 +30,7 @@ Truth is `SpanStore` loaded from `fixtures/policies/canonical.txt` and the ticke
 | Word we used in study | Here |
 |---|---|
 | Control plane | `graph.py` edges, `classify`, `after_gather`, `invoke_ticket` |
-| Worker | `extract`, `playbook` (live `LangChainWorker`) |
+| Worker | `extract`, `playbook` (live OpenAI or Cursor worker) |
 | Unit that is code | `verify`, `lookup_order`, `draft` |
 | Run state | `DeskState` |
 | Truth | span stores |

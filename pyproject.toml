@@ -11,13 +11,20 @@ dependencies = [
     "langchain-openai>=0.2.0",
     "pydantic>=2.0",
     "pyyaml>=6.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+cursor = ["cursor-sdk"]
 
 [project.scripts]
 grounded-desk = "grounded_desk.run:main"
+grounded-desk-ui = "grounded_desk.web:main"
+
+[tool.setuptools.package-data]
+grounded_desk = ["static/*"]
 
 [build-system]
 requires = ["setuptools>=61.0"]

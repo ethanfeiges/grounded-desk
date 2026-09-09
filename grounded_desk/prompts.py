@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
-from grounded_desk.models import PublicItem
+from grounded_desk.models import ClaimBatch, PublicItem
 
 SYSTEM = (
     "You are a support analyst. Cite only from signed_policy and the email. "
     "If a draft_policy block is present, do not quote it. "
     "Reply with claims that use exact substrings from the allowed blocks."
+)
+
+JSON_ONLY = (
+    "Reply with JSON only. No markdown. No tools. No file access. "
+    "Shape: {\"claims\": [{\"statement\": str, \"span_id\": str, \"quote\": str, "
+    "\"source\": \"email\"|\"policy\"|null, \"question_id\": str|null, "
+    "\"rule_id\": str|null, \"verdict\": \"pass\"|\"fail\"|null}]}. "
+    "quote must be an exact substring of signed_policy or the email. "
+    f"Schema: {ClaimBatch.model_json_schema()}"
 )
 
 

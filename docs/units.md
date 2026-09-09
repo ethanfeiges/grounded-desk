@@ -16,7 +16,7 @@ This is a control-plane step, not a support answer. Do not put refund verdicts h
 - **Input:** ticket email, published policy block, and public questions (id + question only).
 - **Output:** `Claim[]` with `question_id`, `span_id`, `quote`.
 - **Postcondition:** quote exists on that span in the email or canonical policy store.
-- **Resource:** live `LangChainWorker`. The plane passes `public_items`. Must not call `invoke` with a new thread.
+- **Resource:** live worker (OpenAI or Cursor). The plane passes `public_items`. Must not call `invoke` with a new thread. The Cursor path uses `tools=[]` so the agent cannot read gold YAML.
 
 Several questions in one call are still one unit. The questions are cases inside the work item.
 

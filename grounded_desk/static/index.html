@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Grounded Desk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <p class="eyebrow">Localhost dispatch</p>
+        <h1>Grounded Desk</h1>
+      </div>
+      <p class="lede">
+        One ticket is one walk through a shared case file. Workers write
+        <em>claims</em>. Verify stamps them. Draft may quote only the grounded ones.
+      </p>
+      <dl class="keys" id="keys">
+        <div><dt>demo</dt><dd>ready</dd></div>
+        <div><dt>openai</dt><dd id="key-openai">—</dd></div>
+        <div><dt>cursor</dt><dd id="key-cursor">—</dd></div>
+      </dl>
+    </header>
+
+    <main class="desk">
+      <aside class="rail">
+        <section>
+          <h2>Ticket</h2>
+          <div id="ticket-list" class="tickets"></div>
+        </section>
+        <form id="run-form" class="controls">
+          <label>
+            Backend
+            <select name="backend" id="backend">
+              <option value="demo" selected>demo (no API key)</option>
+              <option value="openai">openai</option>
+              <option value="cursor">cursor</option>
+            </select>
+          </label>
+          <label>
+            Condition
+            <select name="condition" id="condition">
+              <option value="clean" selected>clean — canonical only</option>
+              <option value="noisy">noisy — decoy in the prompt</option>
+            </select>
+          </label>
+          <label>
+            Thread id
+            <input name="thread_id" id="thread_id" spellcheck="false" />
+          </label>
+          <label class="check">
+            <input type="checkbox" name="skip_approval" id="skip_approval" />
+            Skip refund approval
+          </label>
+          <button type="submit" id="run-btn">Run ticket</button>
+        </form>
+      </aside>
+
+      <section class="stage">
+        <ol class="graph" id="graph" aria-label="Desk graph">
+          <li data-node="route">route</li>
+          <li data-node="extract">extract</li>
+          <li data-node="playbook">playbook</li>
+          <li data-node="gather">gather</li>
+          <li data-node="lookup_order">lookup</li>
+          <li data-node="verify">verify</li>
+          <li data-node="approve">approve</li>
+          <li data-node="draft">draft</li>
+        </ol>
+
+        <div class="papers">
+          <article class="paper">
+            <h2>Email <span id="email-path"></span></h2>
+            <pre id="email-block" class="spans"></pre>
+          </article>
+          <article class="paper muted">
+            <h2>Published policy</h2>
+            <pre id="policy-block" class="spans"></pre>
+          </article>
+          <article class="paper trap">
+            <h2>Decoy (verify never accepts this)</h2>
+            <pre id="decoy-block" class="spans"></pre>
+          </article>
+        </div>
+
+        <article class="draft-card">
+          <h2>Draft</h2>
+          <p id="draft-text" class="draft">Run a ticket to see the reply.</p>
+        </article>
+      </section>
+
+      <aside class="ledger">
+        <section id="status-card">
+          <h2>Case file</h2>
+          <dl class="meta">
+            <div><dt>thread</dt><dd id="meta-thread">—</dd></div>
+            <div><dt>path</dt><dd id="meta-path">—</dd></div>
+            <div><dt>next</dt><dd id="meta-next">—</dd></div>
+            <div><dt>approved</dt><dd id="meta-approved">—</dd></div>
+          </dl>
+          <div id="approval" class="approval hidden">
+            <p>Refund is paused on this thread. Approve writes the draft; reject refuses it.</p>
+            <button type="button" id="approve-btn">Approve</button>
+            <button type="button" id="reject-btn" class="ghost">Reject</button>
+          </div>
+          <p id="error" class="error hidden"></p>
+        </section>
+        <section>
+          <h2>Claims</h2>
+          <p class="hint">Each row is one cited fact. Verify stamps grounded or ungrounded.</p>
+          <ul id="claims" class="claims"></ul>
+        </section>
+        <section>
+          <h2>Scores</h2>
+          <ul id="scores" class="scores"></ul>
+        </section>
+      </aside>
+    </main>
+    <script src="/static/app.js" type="module"></script>
+  </body>
+</html>

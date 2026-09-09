@@ -8,7 +8,7 @@ import sys
 
 from grounded_desk.checkpointing import interrupt_payloads, pending_nodes, thread_config
 from grounded_desk.graph import get_app_graph, resume_ticket, ticket_input
-from grounded_desk.workers import live_worker
+from grounded_desk.workers import make_worker
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -57,14 +57,20 @@ def main(argv: list[str] | None = None) -> int:
         help="do not pause refunds",
     )
     parser.add_argument(
+        "--backend",
+        choices=("openai", "cursor", "demo"),
+        default=None,
+        help="model backend (default GROUNDED_DESK_BACKEND or openai; demo = fixture replay)",
+    )
+    parser.add_argument(
         "--model",
         default=None,
-        help="LangChain chat model id (default gpt-4o-mini)",
+        help="openai: gpt-4o-mini; cursor: composer-2.5",
     )
     args = parser.parse_args(argv)
 
     graph = get_app_graph(
-        live_worker(args.model),
+        make_worker(args.backend, args.model),
         interrupt_refunds=not args.skip_approval,
     )
 

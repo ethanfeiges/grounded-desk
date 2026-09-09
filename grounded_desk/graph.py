@@ -21,10 +21,10 @@ from grounded_desk.score import task_scores
 from grounded_desk.state import DeskState
 from grounded_desk.tickets import find_order_id, load_bundle, order_on_disk
 from grounded_desk.verify import verify_claims
-from grounded_desk.workers import LangChainWorker, live_worker
+from grounded_desk.workers import DeskWorker, live_worker
 
 
-def _run_worker(worker: LangChainWorker, task: str, state: DeskState) -> list[Claim]:
+def _run_worker(worker: DeskWorker, task: str, state: DeskState) -> list[Claim]:
     return worker.complete(
         task,
         state["ticket_id"],
@@ -36,7 +36,7 @@ def _run_worker(worker: LangChainWorker, task: str, state: DeskState) -> list[Cl
 
 
 def build_graph(
-    worker: LangChainWorker | None = None,
+    worker: DeskWorker | None = None,
     *,
     checkpointer: Any | None = None,
     interrupt_refunds: bool = True,
@@ -167,11 +167,11 @@ def build_graph(
 
 
 _graph: Any | None = None
-_key: tuple[str, str, bool] | None = None
+_key: tuple[str, str, str, bool] | None = None
 
 
 def get_app_graph(
-    worker: LangChainWorker | None = None,
+    worker: DeskWorker | None = None,
     *,
     db_path: Path | None = None,
     interrupt_refunds: bool = True,
@@ -180,7 +180,12 @@ def get_app_graph(
     global _graph, _key
     worker = worker or live_worker()
     path = str(db_path) if db_path is not None else "default"
-    key = (worker.model_name, path, interrupt_refunds)
+    key = (
+        getattr(worker, "backend", "openai"),
+        worker.model_name,
+        path,
+        interrupt_refunds,
+    )
     if _graph is None or _key != key:
         saver = sqlite_saver(db_path)
         _graph = build_graph(
@@ -209,7 +214,7 @@ def invoke_ticket(
     ticket_id: str,
     *,
     condition: str = "clean",
-    worker: LangChainWorker | None = None,
+    worker: DeskWorker | None = None,
     thread_id: str | None = None,
     graph: Any | None = None,
     interrupt_refunds: bool = True,
